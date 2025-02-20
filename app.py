@@ -308,25 +308,25 @@ def home_page():
 def generate_workout_page():
     st.title("Generate Custom Workout")
     
-    with st.form("workout_form"):
-        workout_type = st.selectbox(
-            "Workout Type",
-            ["Strength Training", "Cardio", "HIIT", "Yoga", "Calisthenics", "Pilates", "Circuit Training"]
-        )
-        
-        muscle_group = st.multiselect(
-            "Target Muscle Groups",
-            ["Full Body", "Upper Body", "Lower Body", "Core", "Back", "Chest", "Arms", "Shoulders", "Legs", "Glutes"]
-        )
-        
-        workout_duration = st.slider("Workout Duration (minutes)", 10, 120, 30, 5)
-        
-        additional_notes = st.text_area(
-            "Additional Notes",
-            "Include any injuries, equipment available, fitness level, or goals."
-        )
-        
-        generate_button = st.form_submit_button("Generate Workout")
+with st.form("workout_form"):
+    workout_type = st.selectbox(
+        "Workout Type",
+        ["Strength Training", "Cardio", "HIIT", "Yoga", "Calisthenics", "Pilates", "Circuit Training"]
+    )
+    
+    muscle_group = st.multiselect(
+        "Target Muscle Groups",
+        ["Full Body", "Upper Body", "Lower Body", "Core", "Back", "Chest", "Arms", "Shoulders", "Legs", "Glutes"]
+    )
+    
+    workout_duration = st.slider("Workout Duration (minutes)", 10, 120, 30, 5)
+    
+    additional_notes = st.text_area(
+        "Additional Notes",
+        placeholder="Include any injuries, equipment available, fitness level, or goals."
+    )
+    
+    generate_button = st.form_submit_button("Generate Workout")
     
     if generate_button and not st.session_state.generate_clicked:
         st.session_state.generate_clicked = True
