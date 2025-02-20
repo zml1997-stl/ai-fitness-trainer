@@ -116,14 +116,17 @@ def create_workout_pdf(workout_data):
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Additional Notes:", ln=True)
     pdf.set_font("Arial", "", 10)
-    pdf.multi_cell(0, 10, workout_data['notes'])
+    # Sanitize notes text by replacing unsupported characters like the bullet (•)
+    notes = workout_data['notes'].replace("\u2022", "*")
+    pdf.multi_cell(0, 10, notes)
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 10, "Workout Details", ln=True)
     pdf.ln(2)
     
-    content_lines = workout_data['content'].split('\n')
+    # Sanitize content before processing it
+    content_lines = workout_data['content'].replace("\u2022", "*").split('\n')
     
     for line in content_lines:
         if line.startswith('# '):
@@ -140,7 +143,7 @@ def create_workout_pdf(workout_data):
             pdf.cell(0, 10, line.strip('*'), ln=True)
         elif line.startswith('- ') or line.startswith('* '):
             pdf.set_font("Arial", "", 10)
-            # Replace the Unicode bullet with an asterisk that is supported in Latin-1
+            # Use an asterisk instead of a bullet
             pdf.cell(5, 10, "*", ln=0)
             pdf.cell(0, 10, line[2:], ln=True)
         elif line.strip():
@@ -154,7 +157,8 @@ def create_workout_pdf(workout_data):
     pdf.cell(0, 10, f"Generated on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
     pdf.cell(0, 10, "AI Fitness Trainer", ln=True, align="C")
     
-    return pdf.output(dest="S").encode("latin1")
+    # Use error replacement during encoding to ensure no unsupported characters cause an error
+    return pdf.output(dest="S").encode("latin1", errors="replace")
 
 def get_pdf_download_link(pdf_bytes, filename="workout.pdf"):
     """Generate a download link for the PDF"""
