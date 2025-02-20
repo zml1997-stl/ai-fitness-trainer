@@ -486,16 +486,9 @@ def fitness_coach_page():
     
     # Add option to clear chat history
     if st.button("Clear Chat History"):
-        st.session_state[chat_history_key] =  # Assign an empty list here
+        st.session_state[chat_history_key] = 
         save_chat_history()
         st.success("Chat history cleared!")
-        st.rerun()
-    if st.sidebar.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.current_page = "login"
-        st.session_state.generate_clicked = False
-        # Don't clear chat history on logout so it persists between sessions
         st.rerun()
 
 def main():
