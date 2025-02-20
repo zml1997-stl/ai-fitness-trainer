@@ -21,7 +21,7 @@ genai.configure(api_key=api_key)
 
 # Initialize Gemini model
 def get_gemini_model():
-    return genai.GenerativeModel('models/gemini-flash-2.0')
+    return genai.GenerativeModel('models/gemini-2.0-flash')
 
 # User authentication
 USERS = {
