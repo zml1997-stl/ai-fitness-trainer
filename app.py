@@ -272,7 +272,7 @@ def login_page():
                 st.error("Invalid username or password")
 
 def navigation():
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)  # Added one more column for logout
     
     with col1:
         if st.button("Home"):
@@ -298,7 +298,18 @@ def navigation():
             st.session_state.generate_clicked = False
             st.rerun()
     
+    with col5:
+        logout_button()  # Calls the logout button function
+    
     st.divider()
+
+def logout_button():
+    """Logout button to reset session state"""
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.session_state.current_page = "login"
+        st.rerun()
 
 def home_page():
     st.title(f"Welcome, {st.session_state.username}!")
