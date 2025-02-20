@@ -140,7 +140,8 @@ def create_workout_pdf(workout_data):
             pdf.cell(0, 10, line.strip('*'), ln=True)
         elif line.startswith('- ') or line.startswith('* '):
             pdf.set_font("Arial", "", 10)
-            pdf.cell(5, 10, "•", ln=0)
+            # Replace the Unicode bullet with an asterisk that is supported in Latin-1
+            pdf.cell(5, 10, "*", ln=0)
             pdf.cell(0, 10, line[2:], ln=True)
         elif line.strip():
             pdf.set_font("Arial", "", 10)
