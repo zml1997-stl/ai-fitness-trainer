@@ -305,7 +305,7 @@ def navigation():
 
 def logout_button():
     """Logout button to reset session state"""
-    if st.button("Logout"):
+    if st.button("Logout", key="logout_button"):
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.session_state.current_page = "login"
