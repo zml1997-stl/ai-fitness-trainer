@@ -22,9 +22,9 @@ else:
 # Setup Gemini AI
 genai.configure(api_key=api_key)
 
-# Initialize Gemini model
+# Initialize Gemini model using the updated model name
 def get_gemini_model():
-    return genai.GenerativeModel('gemini-1.5-flash')
+    return genai.GenerativeModel('gemini-2.0-flash')
 
 # File paths
 USERS_DATA_FILE = "users_data.json"
@@ -33,8 +33,7 @@ CHATS_DATA_FILE = "chats_data.json"
 # User authentication
 USERS = {
     "Zach": {"password": "ZML", "workouts": []},
-    "Mal": {"password": "MMM", "workouts": []},
-    "Guest": {"password": "123", "workouts": []}
+    "Mal": {"password": "MMM", "workouts": []}
 }
 
 # File operations
@@ -68,7 +67,6 @@ def load_chat_history():
         with open(CHATS_DATA_FILE, "r") as f:
             chat_data = json.load(f)
             
-        # Set the chat history for each user
         for username, history in chat_data.items():
             st.session_state[f"chat_history_{username}"] = history
     except FileNotFoundError:
@@ -104,32 +102,29 @@ def create_workout_pdf(workout_data):
     pdf = FPDF()
     pdf.add_page()
     
-    # Set up the PDF
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Personalized Workout Plan", ln=True, align="C")
     pdf.line(10, 22, 200, 22)
     pdf.ln(5)
     
-    # Add metadata
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, f"Type: {workout_data['workout_type']}", ln=True)
     pdf.cell(0, 10, f"Muscle Groups: {', '.join(workout_data['muscle_group'])}", ln=True)
     pdf.cell(0, 10, f"Duration: {workout_data['duration']} minutes", ln=True)
     pdf.ln(5)
     
-    # Additional notes
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Additional Notes:", ln=True)
     pdf.set_font("Arial", "", 10)
     pdf.multi_cell(0, 10, workout_data['notes'])
     pdf.ln(5)
     
-    # Main workout content
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 10, "Workout Details", ln=True)
     pdf.ln(2)
     
     content_lines = workout_data['content'].split('\n')
+    
     for line in content_lines:
         if line.startswith('# '):
             pdf.set_font("Arial", "B", 14)
@@ -153,7 +148,6 @@ def create_workout_pdf(workout_data):
         else:
             pdf.ln(5)
     
-    # Footer
     pdf.ln(10)
     pdf.set_font("Arial", "I", 8)
     pdf.cell(0, 10, f"Generated on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
@@ -303,7 +297,6 @@ def home_page():
     
     if len(USERS[st.session_state.username]["workouts"]) > 0:
         st.write(f"You have {len(USERS[st.session_state.username]['workouts'])} saved workouts.")
-        
         last_workout = USERS[st.session_state.username]["workouts"][-1]
         st.write(f"Your last workout was on {last_workout['timestamp']}.")
 
@@ -311,61 +304,156 @@ def generate_workout_page():
     st.title("Generate Custom Workout")
     
     with st.form("workout_form"):
-        workout_type = st.selectbox("Workout Type", ["Strength", "Cardio", "Flexibility", "Mixed"])
-        muscle_group = st.multiselect("Target Muscle Groups", ["Upper Body", "Lower Body", "Core", "Full Body"])
-        workout_duration = st.slider("Workout Duration (minutes)", 10, 60, 30)
-        additional_notes = st.text_area("Additional Notes (Optional)")
+        workout_type = st.selectbox(
+            "Workout Type",
+            ["Strength Training", "Cardio", "HIIT", "Yoga", "Calisthenics", "Pilates", "Circuit Training"]
+        )
         
-        submit_button = st.form_submit_button("Generate Workout")
+        muscle_group = st.multiselect(
+            "Target Muscle Groups",
+            ["Full Body", "Upper Body", "Lower Body", "Core", "Back", "Chest", "Arms", "Shoulders", "Legs", "Glutes"]
+        )
         
-        if submit_button:
-            workout_data = generate_workout(workout_type, muscle_group, workout_duration, additional_notes)
-            st.session_state.generate_clicked = True
+        workout_duration = st.slider("Workout Duration (minutes)", 10, 120, 30, 5)
+        
+        additional_notes = st.text_area(
+            "Additional Notes",
+            "Include any injuries, equipment available, fitness level, or goals."
+        )
+        
+        generate_button = st.form_submit_button("Generate Workout")
+    
+    if generate_button and not st.session_state.generate_clicked:
+        st.session_state.generate_clicked = True
+        
+        with st.spinner("Generating your personalized workout..."):
+            muscle_group_str = ", ".join(muscle_group) if muscle_group else "Full Body"
+            workout_content = generate_workout(
+                workout_type, muscle_group_str, workout_duration, additional_notes
+            )
             
-            st.write("### Generated Workout Plan:")
-            st.write(workout_data)
-            
-            if st.button("Download Workout PDF"):
-                pdf_data = create_workout_pdf({
-                    "workout_type": workout_type,
-                    "muscle_group": muscle_group,
-                    "duration": workout_duration,
-                    "notes": additional_notes,
-                    "content": workout_data
-                })
-                
-                download_link = get_pdf_download_link(pdf_data)
-                st.markdown(download_link, unsafe_allow_html=True)
+            st.session_state.current_workout = {
+                "workout_type": workout_type,
+                "muscle_group": muscle_group,
+                "duration": workout_duration,
+                "notes": additional_notes,
+                "content": workout_content
+            }
+    
+    if st.session_state.get("current_workout"):
+        workout_data = st.session_state.current_workout
+        
+        st.subheader("Your Personalized Workout")
+        st.markdown(workout_data["content"])
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Save to History"):
+                workout_id = save_workout(st.session_state.username, workout_data)
+                st.success(f"Workout saved to your history! ID: {workout_id[:8]}")
+        
+        with col2:
+            try:
+                pdf_bytes = create_workout_pdf(workout_data)
+                st.markdown(
+                    get_pdf_download_link(pdf_bytes, f"workout_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf"),
+                    unsafe_allow_html=True
+                )
+            except Exception as e:
+                st.error(f"Error creating PDF: {str(e)}")
 
 def workout_history_page():
-    st.title("Workout History")
+    st.title("Your Workout History")
     
-    workouts = USERS[st.session_state.username]["workouts"]
+    user_workouts = USERS[st.session_state.username]["workouts"]
     
-    if workouts:
-        for workout in workouts:
-            st.write(f"Workout ID: {workout['id']}")
-            st.write(f"Date: {workout['timestamp']}")
-            st.write(f"Workout Data: {workout['data']}")
-            st.write("---")
-    else:
-        st.write("No workouts saved yet.")
-        
+    if not user_workouts:
+        st.info("You haven't saved any workouts yet. Generate a workout to get started!")
+        return
+    
+    for i, workout in enumerate(reversed(user_workouts)):
+        with st.expander(f"Workout from {workout['timestamp']}"):
+            workout_data = workout["data"]
+            
+            st.write(f"**Type:** {workout_data['workout_type']}")
+            st.write(f"**Muscle Groups:** {', '.join(workout_data['muscle_group'])}")
+            st.write(f"**Duration:** {workout_data['duration']} minutes")
+            
+            st.markdown("### Workout Details")
+            st.markdown(workout_data['content'])
+            
+            col1, _ = st.columns(2)
+            
+            with col1:
+                try:
+                    pdf_bytes = create_workout_pdf(workout_data)
+                    st.markdown(
+                        get_pdf_download_link(pdf_bytes, f"workout_{workout['id'][:8]}.pdf"),
+                        unsafe_allow_html=True
+                    )
+                except Exception as e:
+                    st.error(f"Error creating PDF: {str(e)}")
+
 def fitness_coach_page():
-    st.title("Fitness Coach Chat")
+    st.title("AI Fitness Coach")
+    st.write("Ask me anything about fitness, nutrition, or workout techniques!")
     
-    user_query = st.text_input("Ask a fitness question:")
+    chat_history_key = f"chat_history_{st.session_state.username}"
     
-    if user_query:
-        response = chat_with_fitness_coach(user_query, st.session_state.get(f"chat_history_{st.session_state.username}", []))
-        st.session_state.get(f"chat_history_{st.session_state.username}", []).append(f"User: {user_query}")
-        st.session_state.get(f"chat_history_{st.session_state.username}", []).append(f"Coach: {response}")
-        st.write(f"Coach: {response}")
+    st.container(height=400, border=True)
+    with st.container():
+        for i, message in enumerate(st.session_state[chat_history_key]):
+            if i % 2 == 0:
+                st.markdown(f"<div style='background-color:#f0f2f6; padding:10px; border-radius:5px; margin-bottom:10px;'><strong>You:</strong> {message}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div style='background-color:#e6f7ff; padding:10px; border-radius:5px; margin-bottom:10px;'><strong>Coach Alex:</strong> {message}</div>", unsafe_allow_html=True)
+    
+    with st.form(key="chat_form"):
+        user_query = st.text_input("Your question:", key="fitness_query")
+        submit_chat = st.form_submit_button("Ask Coach")
+    
+    if submit_chat and user_query:
+        st.session_state[chat_history_key].append(user_query)
+        
+        with st.spinner("Coach Alex is thinking..."):
+            coach_response = chat_with_fitness_coach(
+                user_query, 
+                st.session_state[chat_history_key][:-1]
+            )
+            st.session_state[chat_history_key].append(coach_response)
+            save_chat_history()
+        
+        st.rerun()
+    
+    if st.button("Clear Chat History"):
+        st.session_state[chat_history_key] = []
+        save_chat_history()
+        st.success("Chat history cleared!")
+        st.rerun()
+
+def logout_button():
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.session_state.current_page = "login"
+        st.session_state.generate_clicked = False
+        st.rerun()
 
 def main():
+    st.set_page_config(
+        page_title="AI Fitness Trainer",
+        page_icon="💪",
+        layout="wide"
+    )
+    
     init_session_state()
     
-    if st.session_state.logged_in:
+    if not st.session_state.logged_in:
+        login_page()
+    else:
+        logout_button()
+        st.sidebar.write(f"Logged in as: **{st.session_state.username}**")
         navigation()
         
         if st.session_state.current_page == "home":
@@ -376,9 +464,8 @@ def main():
             workout_history_page()
         elif st.session_state.current_page == "fitness_coach":
             fitness_coach_page()
-    else:
-        login_page()
+        else:
+            home_page()
 
 if __name__ == "__main__":
     main()
-
