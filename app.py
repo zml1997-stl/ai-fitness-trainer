@@ -34,6 +34,7 @@ CHATS_DATA_FILE = "chats_data.json"
 USERS = {
     "Zach": {"password": "ZML", "workouts": []},
     "Mal": {"password": "MMM", "workouts": []}
+    "Guest": {"password": "123", "workouts": []}
 }
 
 # File operations
