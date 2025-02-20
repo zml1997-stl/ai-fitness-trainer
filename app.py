@@ -33,7 +33,7 @@ CHATS_DATA_FILE = "chats_data.json"
 # User authentication
 USERS = {
     "Zach": {"password": "ZML", "workouts": []},
-    "Mal": {"password": "MMM", "workouts": []}
+    "Mal": {"password": "MMM", "workouts": []},
     "Guest": {"password": "123", "workouts": []}
 }
 
